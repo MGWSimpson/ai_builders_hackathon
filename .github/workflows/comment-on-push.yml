@@ -22,4 +22,11 @@ jobs:
 
       - name: Run comment script
         env:
-          GITHUB_TOKEN: ${_
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}  # <- enables commit list
+        run: |
+          python .github/scripts/comment_on_push.py
