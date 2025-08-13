@@ -3,37 +3,30 @@ name: Comment on PR when pushed
 on:
   push:
     branches:
-      - "*" # run for all branches, you can restrict if needed
+      - '**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   comment:
     runs-on: ubuntu-latest
     steps:
-      - name: Find related pull request
-        id: find_pr
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prs = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`
-            });
-            if (prs.data.length > 0) {
-              core.setOutput("pr_number", prs.data[0].number);
-            } else {
-              core.setOutput("pr_number", "");
-            }
+      - uses: actions/checkout@v4
 
-      - name: Comment on PR
-        if: steps.find_pr.outputs.pr_number != ''
-        uses: actions/github-script@v7
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: parseInt('${{ steps.find_pr.outputs.pr_number }}'),
-              body: `📦 A new push was made to this branch at commit \`${context.sha}\``
-            });
+          python-version: '3.x'
+
+      - name: Run comment script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REF: ${{ github.ref }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: |
+          python .github/scripts/comment_on_push.py
