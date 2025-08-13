@@ -3,29 +3,37 @@ name: Comment on PR when pushed
 on:
   push:
     branches:
-      - "*" # run for all branches, you can restrict if needed
+      - '**'   # runs for all branches
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
 
 jobs:
   comment:
     runs-on: ubuntu-latest
     steps:
-      - name: Find related pull request
+      - name: Find related PR for this branch/commit
         id: find_pr
         uses: actions/github-script@v7
         with:
           script: |
-            const prs = await github.rest.pulls.list({
+            const branch = context.ref.replace('refs/heads/', '');
+            // Get open PRs and try to match by commit first, then by branch name
+            const { data: prs } = await github.rest.pulls.list({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`
+              per_page: 100
             });
-            if (prs.data.length > 0) {
-              core.setOutput("pr_number", prs.data[0].number);
-            } else {
-              core.setOutput("pr_number", "");
+
+            let pr = prs.find(p => p.head.sha === context.sha);
+            if (!pr) {
+              pr = prs.find(p => p.head.ref === branch);
             }
 
+            core.setOutput('pr_number', pr ? pr.number.toString() : '');
       - name: Comment on PR
         if: steps.find_pr.outputs.pr_number != ''
         uses: actions/github-script@v7
@@ -34,6 +42,6 @@ jobs:
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: parseInt('${{ steps.find_pr.outputs.pr_number }}'),
-              body: `📦 A new push was made to this branch at commit \`${context.sha}\``
+              issue_number: parseInt('${{ steps.find_pr.outputs.pr_number }}', 10),
+              body: `📦 New push detected on \`${context.ref.replace('refs/heads/','')}\` at \`${context.sha.slice(0,7)}\`.`
             });
