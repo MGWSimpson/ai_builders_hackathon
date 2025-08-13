@@ -16,8 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
@@ -28,5 +27,6 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REF: ${{ github.ref }}
           GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}  # <- enables commit list
         run: |
           python .github/scripts/comment_on_push.py
