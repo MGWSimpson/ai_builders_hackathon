@@ -1,0 +1,28 @@
+name: PR Summary Comment
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4  # checks out the base repo (safe for pull_request_target)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Post/Update PR summary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
+          GITHUB_PR_NUMBER: ${{ github.event.number }}
+        run: |
+          python .github/scripts/post_pr_summary.py
